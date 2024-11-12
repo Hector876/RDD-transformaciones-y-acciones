@@ -1,0 +1,587 @@
+******************************************************************************
+*******************************Transformaciones*******************************
+******************************************************************************
+--------------------
+Map
+--------------------
+from pyspark import SparkContext, SparkConf
+
+conf = SparkConf().setAppName("EjemploMapComplejo").setMaster("local[*]")
+sc = SparkContext(conf=conf)
+
+productos = [
+    ('Laptop', ['Electronics', 'Computers'], 1200),
+    ('Shirt', ['Clothing', 'Men'], 35),
+    ('Sofa', ['Furniture', 'Living Room'], 800),
+    ('Smartphone', ['Electronics', 'Mobile'], 900),
+    ('Book', ['Books', 'Education'], 15)
+]
+rdd = sc.parallelize(productos)
+
+resultado = rdd.map(lambda producto: {
+    "nombre": producto[0],
+    "categorias": producto[1],
+    "precio_original": producto[2],
+    "precio_descuento": producto[2] * 0.9 if "Electronics" in producto[1] or producto[2] > 500 else producto[2],
+    "es_electronics": "Electronics" in producto[1]
+}).collect()
+
+for item in resultado:
+    print(item)
+
+sc.stop()
+
+--------------------
+Filter
+--------------------
+from pyspark import SparkContext, SparkConf
+
+conf = SparkConf().setAppName("EjemploFilter").setMaster("local[*]")
+sc = SparkContext(conf=conf)
+
+productos = [
+    ('Laptop', 'Electronics', 1200),
+    ('Shirt', 'Clothing', 35),
+    ('Sofa', 'Furniture', 800),
+    ('Smartphone', 'Electronics', 900),
+    ('Book', 'Books', 15)
+]
+
+rdd = sc.parallelize(productos)
+
+productos_filtrados = rdd.filter(lambda x: x[1] == 'Electronics' and x[2] > 100)
+
+resultado = productos_filtrados.collect()
+for item in resultado:
+    print(item)
+
+sc.stop()
+
+--------------------
+FlatMap
+--------------------
+from pyspark import SparkContext, SparkConf
+
+conf = SparkConf().setAppName("EjemploFlatMapComplejo").setMaster("local[*]")
+sc = SparkContext(conf=conf)
+
+productos = [
+    ("Laptop", ["Electrónica", "Computadoras"], 1200),
+    ("Shirt", ["Ropa", "Hombre"], 35),
+    ("Sofa", ["Muebles", "Sala"], 800),
+    ("Smartphone", ["Electrónica", "Móvil"], 900),
+    ("Book", ["Libros", "Educación"], 15)
+]
+
+rdd = sc.parallelize(productos)
+
+categorias_y_precio = rdd.flatMap(lambda x: [(categoria, x[2]) for categoria in x[1]])
+
+resultado = categorias_y_precio.collect()
+for categoria, precio in resultado:
+    print(f"Categoría: {categoria}, Precio: {precio}")
+
+sc.stop()
+
+--------------------
+Union
+--------------------
+from pyspark import SparkContext, SparkConf
+
+conf = SparkConf().setAppName("EjemploUnion").setMaster("local[*]")
+sc = SparkContext(conf=conf)
+
+tienda1_productos = [
+    ("Laptop", 1200, "Tienda1"),
+    ("Tablet", 300, "Tienda1"),
+    ("Smartphone", 900, "Tienda1")
+]
+
+tienda2_productos = [
+    ("Laptop", 1150, "Tienda2"),
+    ("Tablet", 320, "Tienda2"),
+    ("Headphones", 150, "Tienda2")
+]
+
+rdd_tienda1 = sc.parallelize(tienda1_productos)
+rdd_tienda2 = sc.parallelize(tienda2_productos)
+
+productos_combinados = rdd_tienda1.union(rdd_tienda2)
+
+resultado = productos_combinados.collect()
+for item in resultado:
+    print(item)
+
+sc.stop()
+
+--------------------
+intersection
+--------------------
+from pyspark import SparkContext, SparkConf
+
+conf = SparkConf().setAppName("EjemploIntersection").setMaster("local[*]")
+sc = SparkContext(conf=conf)
+
+tienda1_productos = [
+    ("Laptop", 1200),
+    ("Tablet", 300),
+    ("Smartphone", 900),
+    ("Headphones", 150)
+]
+
+tienda2_productos = [
+    ("Laptop", 1150),
+    ("Tablet", 320),
+    ("Headphones", 150),
+    ("Monitor", 250)
+]
+
+rdd_tienda1 = sc.parallelize(tienda1_productos)
+rdd_tienda2 = sc.parallelize(tienda2_productos)
+
+productos_comunes = rdd_tienda1.intersection(rdd_tienda2)
+
+resultado = productos_comunes.collect()
+for item in resultado:
+    print(item)
+
+sc.stop()
+
+--------------------
+Distinc
+--------------------
+from pyspark import SparkContext, SparkConf
+
+conf = SparkConf().setAppName("EjemploDistinct").setMaster("local[*]")
+sc = SparkContext(conf=conf)
+
+productos = [
+    ("Laptop", 1200),
+    ("Tablet", 300),
+    ("Smartphone", 900),
+    ("Tablet", 300),
+    ("Laptop", 1200),
+    ("Headphones", 150)
+]
+
+rdd_productos = sc.parallelize(productos)
+
+productos_distintos = rdd_productos.distinct()
+
+resultado = productos_distintos.collect()
+for item in resultado:
+    print(item)
+
+sc.stop()
+
+--------------------
+groupByKey
+--------------------
+from pyspark import SparkContext, SparkConf
+
+conf = SparkConf().setAppName("EjemploGroupByKey").setMaster("local[*]")
+sc = SparkContext(conf=conf)
+
+puntuaciones = [
+    ("Ana", 85),
+    ("Luis", 90),
+    ("Ana", 75),
+    ("Luis", 88),
+    ("Carlos", 92),
+    ("Ana", 95),
+    ("Carlos", 85)
+]
+
+rdd_puntuaciones = sc.parallelize(puntuaciones)
+puntuaciones_agrupadas = rdd_puntuaciones.groupByKey()
+promedio_puntuaciones = puntuaciones_agrupadas.mapValues(lambda puntuaciones: sum(puntuaciones) / len(puntuaciones))
+
+resultado = promedio_puntuaciones.collect()
+for nombre, promedio in resultado:
+    print(f"{nombre}: {promedio:.2f}")
+
+sc.stop()
+
+--------------------
+reduceByKey
+--------------------
+from pyspark import SparkContext, SparkConf
+
+conf = SparkConf().setAppName("EjemploReduceByKey").setMaster("local[*]")
+sc = SparkContext(conf=conf)
+
+ventas = [
+    ("Producto A", 150),
+    ("Producto B", 200),
+    ("Producto A", 300),
+    ("Producto C", 100),
+    ("Producto B", 50),
+    ("Producto C", 250)
+]
+
+rdd_ventas = sc.parallelize(ventas)
+ventas_totales = rdd_ventas.reduceByKey(lambda x, y: x + y)
+
+resultado = ventas_totales.collect()
+for producto, total in resultado:
+    print(f"{producto}: {total}")
+
+sc.stop()
+
+--------------------
+sortByKey
+--------------------
+from pyspark import SparkContext, SparkConf
+
+conf = SparkConf().setAppName("EjemploSortByKey").setMaster("local[*]")
+sc = SparkContext(conf=conf)
+
+productos = [
+    ("Producto C", 200),
+    ("Producto A", 150),
+    ("Producto B", 300),
+    ("Producto D", 100)
+]
+
+rdd_productos = sc.parallelize(productos)
+rdd_ordenado = rdd_productos.sortByKey(ascending=True)
+
+resultado = rdd_ordenado.collect()
+for producto, cantidad in resultado:
+    print(f"{producto}: {cantidad}")
+
+sc.stop()
+
+--------------------
+Join
+--------------------
+from pyspark import SparkContext, SparkConf
+
+conf = SparkConf().setAppName("EjemploJoin").setMaster("local[*]")
+sc = SparkContext(conf=conf)
+
+productos = [
+    ("1", "Producto A"),
+    ("2", "Producto B"),
+    ("3", "Producto C"),
+    ("4", "Producto D")
+]
+
+ventas = [
+    ("1", 200),
+    ("2", 150),
+    ("1", 300),
+    ("3", 400),
+    ("4", 100),
+    ("2", 250)
+]
+
+rdd_productos = sc.parallelize(productos)
+rdd_ventas = sc.parallelize(ventas)
+
+rdd_union = rdd_ventas.join(rdd_productos)
+
+resultado = rdd_union.collect()
+for producto_id, (cantidad, nombre_producto) in resultado:
+    print(f"ID del producto: {producto_id}, Nombre: {nombre_producto}, Cantidad vendida: {cantidad}")
+
+sc.stop()
+
+--------------------
+Cogroup
+--------------------
+from pyspark import SparkContext, SparkConf
+
+conf = SparkConf().setAppName("EjemploCogroup").setMaster("local[*]")
+sc = SparkContext(conf=conf)
+
+productos = [
+    ("1", "Producto A"),
+    ("2", "Producto B"),
+    ("3", "Producto C"),
+    ("4", "Producto D")
+]
+
+ventas = [
+    ("1", 200),
+    ("2", 150),
+    ("1", 300),
+    ("3", 400),
+    ("4", 100),
+    ("2", 250),
+    ("5", 75)
+]
+
+rdd_productos = sc.parallelize(productos)
+rdd_ventas = sc.parallelize(ventas)
+
+rdd_cogroup = rdd_productos.cogroup(rdd_ventas)
+
+resultado = rdd_cogroup.collect()
+for producto_id, (info_producto, cantidades) in resultado:
+    info_producto = list(info_producto)
+    cantidades = list(cantidades)
+    if info_producto:
+        nombre_producto = info_producto[0]
+        print(f"Producto ID: {producto_id}, Nombre: {nombre_producto}, Ventas: {cantidades}")
+    else:
+        print(f"Producto ID: {producto_id} no tiene información de producto, Ventas: {cantidades}")
+
+sc.stop()
+
+--------------------
+Coalesce
+--------------------
+from pyspark import SparkContext, SparkConf
+
+conf = SparkConf().setAppName("EjemploCoalesce").setMaster("local[*]")
+sc = SparkContext(conf=conf)
+
+rdd = sc.parallelize([("ProductoA", 20), ("ProductoB", 30), ("ProductoC", 40), ("ProductoD", 50), ("ProductoE", 60)], 5)
+print("Número de particiones inicial:", rdd.getNumPartitions())
+
+rdd_coalesced = rdd.coalesce(2)
+print("Número de particiones después de coalesce:", rdd_coalesced.getNumPartitions())
+
+resultado = rdd_coalesced.collect()
+print("Datos:", resultado)
+
+sc.stop()
+
+**********************************************************************
+*******************************Acciones*******************************
+**********************************************************************
+--------------------
+Reduce
+--------------------
+from pyspark import SparkContext, SparkConf
+conf = SparkConf().setAppName("EjemploComplexReduce").setMaster("local[*]")
+sc = SparkContext(conf=conf)
+
+sales_data = [
+    ('Laptop', 1200),
+    ('Tablet', 350),
+    ('Smartphone', 900),
+    ('Laptop', 1500),
+    ('Tablet', 450),
+    ('Smartphone', 800),
+    ('Headphones', 200)
+]
+
+rdd = sc.parallelize(sales_data)
+
+total_sales_by_product = rdd.reduceByKey(lambda x, y: x + y)
+
+max_sales = total_sales_by_product.reduce(lambda x, y: x if x[1] > y[1] else y)
+
+print(f"Producto con mayores ventas: {max_sales[0]} con {max_sales[1]} en ventas totales")
+
+sc.stop()
+
+--------------------
+Collect
+--------------------
+from pyspark import SparkContext, SparkConf
+conf = SparkConf().setAppName("EjemploCollect").setMaster("local[*]")
+sc = SparkContext(conf=conf)
+
+sales_data = [
+    ('Laptop', 1200),
+    ('Tablet', 350),
+    ('Smartphone', 900),
+    ('Laptop', 1500),
+    ('Tablet', 450),
+    ('Smartphone', 800),
+    ('Headphones', 200)
+]
+
+rdd = sc.parallelize(sales_data)
+
+total_sales_by_product = rdd.reduceByKey(lambda x, y: x + y)
+
+result = total_sales_by_product.collect()
+
+for product, total_sales in result:
+    print(f"Producto: {product}, Ventas Totales: {total_sales}")
+
+sc.stop()
+
+--------------------
+Count
+--------------------
+from pyspark import SparkContext, SparkConf
+conf = SparkConf().setAppName("EjemploCountComplejo").setMaster("local[*]")
+sc = SparkContext(conf=conf)
+
+data = [
+    ('Juan', 23, 'España'),
+    ('Maria', 25, 'México'),
+    ('Pedro', 23, 'España'),
+    ('Laura', 28, 'Colombia'),
+    ('Carlos', 25, 'España'),
+    ('Ana', 27, 'México'),
+    ('Luis', 23, 'Colombia')
+]
+
+rdd = sc.parallelize(data)
+
+filtered_rdd = rdd.filter(lambda x: x[1] == 23)
+
+count_by_country = filtered_rdd.map(lambda x: (x[2], 1)).reduceByKey(lambda a, b: a + b)
+
+total_count = filtered_rdd.count()
+
+print(f"Total de personas con 23 años: {total_count}")
+
+print("Número de personas con 23 años por país:")
+for country, count in count_by_country.collect():
+    print(f"{country}: {count}")
+
+sc.stop()
+
+--------------------
+first
+--------------------
+from pyspark import SparkContext, SparkConf
+conf = SparkConf().setAppName("EjemploFirst").setMaster("local[*]")
+sc = SparkContext(conf=conf)
+
+data = [
+    ('Juan', 23, 'España'),
+    ('Maria', 25, 'México'),
+    ('Pedro', 23, 'España'),
+    ('Laura', 28, 'Colombia'),
+    ('Carlos', 25, 'España'),
+    ('Ana', 27, 'México'),
+    ('Luis', 23, 'Colombia')
+]
+
+rdd = sc.parallelize(data)
+
+first_person = rdd.first()
+
+print(f"El primer elemento del RDD es: {first_person}")
+
+sc.stop()
+
+--------------------
+Take
+--------------------
+from pyspark import SparkContext, SparkConf
+conf = SparkConf().setAppName("EjemploTake").setMaster("local[*]")
+sc = SparkContext(conf=conf)
+
+data = [
+    ('Juan', 23, 'España'),
+    ('Maria', 25, 'México'),
+    ('Pedro', 23, 'España'),
+    ('Laura', 28, 'Colombia'),
+    ('Carlos', 25, 'España'),
+    ('Ana', 27, 'México'),
+    ('Luis', 23, 'Colombia')
+]
+
+rdd = sc.parallelize(data)
+
+top_3_persons = rdd.take(3)
+
+print("Los primeros 3 elementos del RDD son:")
+for person in top_3_persons:
+    print(person)
+
+sc.stop()
+
+--------------------
+SaveAsTextFile
+--------------------
+from pyspark import SparkContext, SparkConf
+conf = SparkConf().setAppName("EjemploSaveAsTextFile").setMaster("local[*]")
+sc = SparkContext(conf=conf)
+
+data = [
+    ('Juan', 23, 'España'),
+    ('Maria', 25, 'México'),
+    ('Pedro', 23, 'España'),
+    ('Laura', 28, 'Colombia'),
+    ('Carlos', 25, 'España'),
+    ('Ana', 27, 'México'),
+    ('Luis', 23, 'Colombia')
+]
+
+rdd = sc.parallelize(data)
+
+rdd.saveAsTextFile("output/personas.txt")
+
+sc.stop()
+
+--------------------
+Max & Min
+--------------------
+from pyspark import SparkContext, SparkConf
+conf = SparkConf().setAppName("EjemploMaxMin").setMaster("local[*]")
+sc = SparkContext(conf=conf)
+
+data = [
+    ('Juan', 23),
+    ('Maria', 25),
+    ('Pedro', 22),
+    ('Laura', 28),
+    ('Carlos', 27),
+    ('Ana', 24)
+]
+
+rdd = sc.parallelize(data)
+
+max_persona = rdd.max(key=lambda x: x[1])
+
+min_persona = rdd.min(key=lambda x: x[1])
+
+print(f"Persona con la mayor edad: {max_persona}")
+print(f"Persona con la menor edad: {min_persona}")
+
+sc.stop()
+
+--------------------
+CountByKey
+--------------------
+from pyspark import SparkContext, SparkConf
+conf = SparkConf().setAppName("EjemploCountByKeyComplejo").setMaster("local[*]")
+sc = SparkContext(conf=conf)
+
+data = [
+    ('cliente_1', 'pedido_1'),
+    ('cliente_2', 'pedido_2'),
+    ('cliente_1', 'pedido_3'),
+    ('cliente_3', 'pedido_4'),
+    ('cliente_2', 'pedido_5'),
+    ('cliente_1', 'pedido_6'),
+    ('cliente_3', 'pedido_7'),
+    ('cliente_1', 'pedido_8'),
+    ('cliente_2', 'pedido_9')
+]
+
+rdd = sc.parallelize(data)
+
+count_by_key = rdd.countByKey()
+
+print(count_by_key)
+
+sc.stop()
+
+--------------------
+Foreach
+--------------------
+from pyspark import SparkContext
+sc = SparkContext.getOrCreate()
+
+products = [
+    ("Laptop", 1200),
+    ("Tablet", 300),
+    ("Smartphone", 900),
+    ("Monitor", 250),
+    ("Headphones", 150)
+]
+
+rdd = sc.parallelize(products)
+
+rdd.foreach(lambda product: print(f"Producto: {product[0]}, Precio: ${product[1]}"))
